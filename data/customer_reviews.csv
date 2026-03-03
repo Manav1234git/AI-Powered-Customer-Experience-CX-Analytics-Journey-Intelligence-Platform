@@ -1,0 +1,11 @@
+customer_id,review_id,rating,review_text,review_date,product_category
+C001,REV001,5,Excellent product quality and fast delivery,2026-03-01,Electronics
+C002,REV002,4,Good value for money,2026-03-01,Clothing
+C003,REV003,5,Highly satisfied with my purchase,2026-03-02,Home & Kitchen
+C004,REV004,3,Average quality but decent price,2026-03-02,Sports & Outdoors
+C005,REV005,5,Outstanding customer service,2026-03-02,Electronics
+C006,REV006,2,Product arrived damaged,2026-03-02,Furniture
+C007,REV007,4,Met expectations,2026-03-03,Beauty & Personal Care
+C008,REV008,5,Would definitely buy again,2026-03-03,Electronics
+C009,REV009,1,Very disappointed with quality,2026-03-03,Clothing
+C010,REV010,4,Good product with minor issues,2026-03-03,Home & Kitchen

@@ -1,0 +1,11 @@
+chat_id,customer_id,chat_start_time,chat_end_time,duration_minutes,support_agent_id,issue_category,resolution_status,sentiment,message_count
+CHAT001,C001,2026-03-01 10:00:00,2026-03-01 10:15:30,15,AGT001,Shipping & Delivery,Resolved,Positive,8
+CHAT002,C002,2026-03-01 11:30:00,2026-03-01 11:45:20,15,AGT002,Product Information,Resolved,Neutral,6
+CHAT003,C003,2026-03-01 14:20:00,2026-03-01 14:50:15,30,AGT003,Returns & Refunds,Resolved,Negative,12
+CHAT004,C004,2026-03-01 15:15:00,2026-03-01 15:30:45,15,AGT001,Billing Issue,Resolved,Neutral,7
+CHAT005,C005,2026-03-02 09:00:00,2026-03-02 09:20:30,20,AGT002,Technical Support,Resolved,Positive,9
+CHAT006,C006,2026-03-02 10:30:00,2026-03-02 11:10:20,40,AGT003,Damaged Product,Escalated,Negative,18
+CHAT007,C007,2026-03-02 13:45:00,2026-03-02 14:00:15,15,AGT001,Account Help,Resolved,Positive,6
+CHAT008,C008,2026-03-02 16:20:00,2026-03-02 16:40:45,20,AGT002,Promotion/Coupon,Resolved,Positive,8
+CHAT009,C009,2026-03-03 08:15:00,2026-03-03 08:45:30,30,AGT003,Quality Complaint,Escalated,Negative,14
+CHAT010,C010,2026-03-03 11:00:00,2026-03-03 11:12:45,12,AGT001,Order Status,Resolved,Positive,5
