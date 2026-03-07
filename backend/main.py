@@ -7,7 +7,6 @@ sys.path.append("../ai-engine")
 from sentiment_analysis import analyze_sentiment
 from churn_prediction import predict_churn
 from recommendation_engine import generate_recommendations
-
 app = Flask(__name__)
 
 reviews = pd.read_csv("../data/customer_reviews.csv")
