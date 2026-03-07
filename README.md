@@ -1,76 +1,96 @@
-# CX AI Platform
+# AI-Powered Customer Experience (CX) Analytics Platform
 
-Production-ready, full-stack **Customer Experience (CX) Analytics & Journey Intelligence Platform**.
+Full-stack CX analytics and journey intelligence project with a working FastAPI backend, Next.js frontend, and a lightweight AI analytics layer.
 
-## Stack
-- Frontend: Next.js 14, TypeScript, TailwindCSS, Shadcn-style UI components, Framer Motion, Three.js, Recharts
-- Backend: FastAPI, LangChain, OpenAI API integration, Chroma vector DB, PostgreSQL, Redis, Celery
-- AI Layer: RAG pipeline, sentiment detection, intent/topic clustering, churn scoring, journey summarization
+## Work Completed So Far
 
-## Features
-- Upload CX data via CSV/JSON
-- Analyze customer sentiment, intent, churn probability, and anomalies
-- RAG semantic retrieval for contextual AI answers
-- Dashboard with sentiment timeline and churn heatmap segments
-- Customer Journey Explorer
-- AI Copilot (`/query-ai`) for analytics Q&A
-- Admin panel for upload and analysis trigger
-- Real-time architecture foundation with Redis + Celery worker
+### Backend (FastAPI)
+- Implemented API server with CORS, startup initialization, and global error handling.
+- Implemented data upload and analysis flow:
+  - `POST /upload-data` (CSV/JSON upload)
+  - `POST /analyze-data` (runs preprocessing + analytics pipeline)
+- Implemented insights APIs:
+  - `GET /insights`
+  - `GET /sentiment-trend`
+  - `GET /churn-risk`
+- Implemented AI query endpoint:
+  - `POST /query-ai`
+- Implemented runtime API key endpoint:
+  - `POST /admin/api-key`
 
-## Project Structure
-```text
-cx-ai-platform/
-├ frontend/
-│  ├ app/
-│  ├ components/
-│  ├ dashboard/
-│  ├ analytics/
-│  ├ ai-copilot/
-│  └ styles/
-├ backend/
-│  ├ main.py
-│  ├ api/
-│  ├ services/
-│  ├ rag/
-│  ├ models/
-│  ├ workers/
-│  └ database/
-├ ai-engine/
-│  ├ embeddings.py
-│  ├ sentiment.py
-│  ├ churn_model.py
-│  ├ clustering.py
-│  └ rag_pipeline.py
-├ docker-compose.yml
-├ requirements.txt
-├ package.json
-└ .env.example
-```
+### AI/Analytics Layer
+- Preprocessing pipeline for missing CX columns (`customer_id`, `text`, `timestamp`, `ticket_count`, `inactive_days`).
+- Rule-based sentiment scoring and sentiment labels.
+- Topic/intent detection via keyword clustering.
+- Interpretable churn probability model (sigmoid baseline).
+- Journey summary generation and local RAG-style answer fallback.
+- Vector store integration:
+  - Chroma support (HTTP client)
+  - In-memory fallback if Chroma is unavailable
+
+### Frontend (Next.js 14 + TypeScript)
+- Implemented pages:
+  - `/` Landing page
+  - `/dashboard`
+  - `/analytics`
+  - `/journey`
+  - `/ai-copilot`
+  - `/admin`
+- Added reusable UI components (`card`, `button`, `input`, metric cards, chart components, hero section).
+- Connected Admin page to backend for upload + analyze + API key update.
+- Connected AI Copilot page to `POST /query-ai`.
+
+### Infra and Project Setup
+- Dockerized frontend and backend.
+- Added `docker-compose.yml` with:
+  - frontend
+  - backend
+  - celery-worker
+  - postgres
+  - redis
+  - chroma
+- Added environment configuration via `.env.example`.
+- Added backend test suite with end-to-end API flow (`backend/tests/test_api.py`).
+
+## Current Status
+- Core MVP flow is working end-to-end:
+  1. Upload dataset
+  2. Run analysis
+  3. View insights/churn/sentiment
+  4. Ask questions in AI Copilot
+- Some frontend pages currently use static sample content for visualization and can be wired further to live endpoints.
+
+## Tech Stack
+- Frontend: Next.js, TypeScript, Tailwind CSS, Framer Motion, Recharts, Three.js
+- Backend: FastAPI, SQLAlchemy, Pydantic Settings
+- Data/AI: Pandas, ChromaDB, LangChain/OpenAI (optional), local fallback inference modules
+- Infra: Docker Compose, Redis, Celery, PostgreSQL
 
 ## API Endpoints
+- `GET /`
 - `POST /upload-data`
 - `POST /analyze-data`
 - `GET /insights`
 - `GET /sentiment-trend`
 - `GET /churn-risk`
 - `POST /query-ai`
+- `POST /admin/api-key`
 
-## Local Run (Docker)
-1. Copy env template:
-   ```bash
-   cp .env.example .env
-   ```
-2. Start everything:
-   ```bash
-   docker compose up --build
-   ```
-3. Open:
-   - Frontend: http://localhost:3000
-   - Backend: http://localhost:8000
-   - Chroma: http://localhost:8001
+## Run Locally
 
-## Local Run (Without Docker)
-### Backend
+### Docker
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Services:
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8000`
+- Chroma: `http://localhost:8001`
+
+### Without Docker
+Backend:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -78,19 +98,19 @@ pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload --port 8000
 ```
 
-### Frontend
+Frontend:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## Testing
+## Tests
 ```bash
 pytest backend/tests
 ```
 
 ## Notes
-- If `OPENAI_API_KEY` is set, `POST /query-ai` uses LangChain + OpenAI.
-- Without OpenAI credentials, deterministic local fallback logic is used.
-- Chroma/Redis failures degrade gracefully with in-memory fallback for development continuity.
+- If `OPENAI_API_KEY` is configured, AI Copilot uses LangChain + OpenAI model calls.
+- If OpenAI is unavailable, the backend returns deterministic fallback answers based on retrieved context.
+- If Chroma is unavailable, vector search falls back to in-memory similarity.
