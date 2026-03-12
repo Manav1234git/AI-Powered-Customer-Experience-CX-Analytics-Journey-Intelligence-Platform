@@ -10,3 +10,15 @@ def analyze_reviews():
         "positive_reviews": positive,
         "negative_reviews": negative
     }
+    import pandas as pd
+
+def analyze_customer_reviews():
+    df = pd.read_csv("data/customer_reviews.csv")
+
+    avg_rating = df["rating"].mean()
+    total_reviews = len(df)
+
+    return {
+        "average_rating": avg_rating,
+        "total_reviews": total_reviews
+    }
