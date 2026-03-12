@@ -114,3 +114,7 @@ pytest backend/tests
 - If `OPENAI_API_KEY` is configured, AI Copilot uses LangChain + OpenAI model calls.
 - If OpenAI is unavailable, the backend returns deterministic fallback answers based on retrieved context.
 - If Chroma is unavailable, vector search falls back to in-memory similarity.
+
+- ### Additional Analytics Modules
+- Customer review insights
+- Dataset summary analytics
