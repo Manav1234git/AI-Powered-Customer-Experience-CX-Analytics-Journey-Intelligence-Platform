@@ -24,7 +24,7 @@ def analyze_customer_reviews():
     }
 
     def get_dataset_summary():
-    import pandas as pd
+     import pandas as pd
     df = pd.read_csv("data/customer_reviews.csv")
 
     return {
