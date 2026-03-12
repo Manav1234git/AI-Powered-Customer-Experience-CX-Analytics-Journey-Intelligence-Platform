@@ -1,0 +1,16 @@
+event_id,customer_id,event_type,event_timestamp,page_url,duration_seconds,device_type
+EVT001,C001,page_view,2026-03-01 08:30:45,/products/electronics,45,Desktop
+EVT002,C001,add_to_cart,2026-03-01 08:32:15,/products/electronics/laptop,0,Desktop
+EVT003,C002,page_view,2026-03-01 09:15:20,/products/clothing,60,Mobile
+EVT004,C002,click,2026-03-01 09:16:00,/products/clothing/shirts,0,Mobile
+EVT005,C003,page_view,2026-03-01 10:00:00,/home,30,Desktop
+EVT006,C003,search,2026-03-01 10:02:30,/search?q=kitchen,15,Desktop
+EVT007,C004,page_view,2026-03-02 11:20:15,/products/sports,120,Tablet
+EVT008,C005,checkout_start,2026-03-02 12:45:30,/checkout,0,Desktop
+EVT009,C006,page_view,2026-03-02 14:10:45,/sale,90,Mobile
+EVT010,C007,purchase_complete,2026-03-03 09:30:00,/checkout/confirmation,0,Desktop
+EVT011,C008,page_view,2026-03-03 10:45:20,/products/electronics,45,Mobile
+EVT012,C009,click,2026-03-03 11:15:30,/products/clothing,0,Desktop
+EVT013,C010,add_to_cart,2026-03-03 13:20:00,/products/home-kitchen,0,Mobile
+EVT014,C001,page_view,2026-03-03 15:00:45,/recommendations,30,Desktop
+EVT015,C002,purchase_complete,2026-03-03 16:30:20,/checkout/confirmation,0,Mobile
