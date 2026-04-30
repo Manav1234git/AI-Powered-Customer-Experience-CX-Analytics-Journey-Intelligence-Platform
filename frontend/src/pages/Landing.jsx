@@ -15,12 +15,20 @@ export default function Landing() {
           <a href="#features" className="hover:text-white transition">Platform</a>
           <a href="#about" className="hover:text-white transition">Solutions</a>
         </div>
-        <Link 
-          to="/login" 
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-full font-medium transition-all shadow-[0_0_15px_rgba(79,70,229,0.5)] hover:shadow-[0_0_25px_rgba(79,70,229,0.7)]"
-        >
-          Sign In
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link 
+            to="/login" 
+            className="text-slate-300 hover:text-white font-medium transition-colors"
+          >
+            Log in
+          </Link>
+          <Link 
+            to="/register" 
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-full font-medium transition-all shadow-[0_0_15px_rgba(79,70,229,0.5)] hover:shadow-[0_0_25px_rgba(79,70,229,0.7)]"
+          >
+            Sign up
+          </Link>
+        </div>
       </nav>
 
       {/* Hero Section */}
@@ -48,17 +56,17 @@ export default function Landing() {
           </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             <Link 
-              to="/login" 
+              to="/register" 
               className="flex items-center gap-2 bg-white text-slate-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-100 transition-all hover:scale-105 shadow-xl shadow-white/10"
             >
-              Sign In <ArrowRight size={20} />
+              Get Started <ArrowRight size={20} />
             </Link>
-            <a 
-              href="#features" 
+            <Link 
+              to="/login" 
               className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-md border border-slate-700 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-700 transition-all"
             >
-              View Features
-            </a>
+              Log in
+            </Link>
           </div>
         </div>
       </div>
