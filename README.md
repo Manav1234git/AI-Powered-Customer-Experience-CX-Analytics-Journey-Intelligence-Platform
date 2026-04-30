@@ -1,119 +1,40 @@
-# AI-Powered Customer Experience (CX) Analytics Platform
+# AI-Powered CX Analytics & Journey Intelligence Platform
 
-Full-stack CX analytics and journey intelligence project with a working FastAPI backend, Next.js frontend, and a lightweight AI analytics layer.
-
-## Work Completed So Far
-
-### Backend (FastAPI)
-- Implemented API server with CORS, startup initialization, and global error handling.
-- Implemented data upload and analysis flow:
-  - `POST /upload-data` (CSV/JSON upload)
-  - `POST /analyze-data` (runs preprocessing + analytics pipeline)
-- Implemented insights APIs:
-  - `GET /insights`
-  - `GET /sentiment-trend`
-  - `GET /churn-risk`
-- Implemented AI query endpoint:
-  - `POST /query-ai`
-- Implemented runtime API key endpoint:
-  - `POST /admin/api-key`
-
-### AI/Analytics Layer
-- Preprocessing pipeline for missing CX columns (`customer_id`, `text`, `timestamp`, `ticket_count`, `inactive_days`).
-- Rule-based sentiment scoring and sentiment labels.
-- Topic/intent detection via keyword clustering.
-- Interpretable churn probability model (sigmoid baseline).
-- Journey summary generation and local RAG-style answer fallback.
-- Vector store integration:
-  - Chroma support (HTTP client)
-  - In-memory fallback if Chroma is unavailable
-
-### Frontend (Next.js 14 + TypeScript)
-- Implemented pages:
-  - `/` Landing page
-  - `/dashboard`
-  - `/analytics`
-  - `/journey`
-  - `/ai-copilot`
-  - `/admin`
-- Added reusable UI components (`card`, `button`, `input`, metric cards, chart components, hero section).
-- Connected Admin page to backend for upload + analyze + API key update.
-- Connected AI Copilot page to `POST /query-ai`.
-
-### Infra and Project Setup
-- Dockerized frontend and backend.
-- Added `docker-compose.yml` with:
-  - frontend
-  - backend
-  - celery-worker
-  - postgres
-  - redis
-  - chroma
-- Added environment configuration via `.env.example`.
-- Added backend test suite with end-to-end API flow (`backend/tests/test_api.py`).
-
-## Current Status
-- Core MVP flow is working end-to-end:
-  1. Upload dataset
-  2. Run analysis
-  3. View insights/churn/sentiment
-  4. Ask questions in AI Copilot
-- Some frontend pages currently use static sample content for visualization and can be wired further to live endpoints.
+A full-stack, local-first platform for analyzing customer feedback, predicting churn, and interacting with data via an AI Copilot.
 
 ## Tech Stack
-- Frontend: Next.js, TypeScript, Tailwind CSS, Framer Motion, Recharts, Three.js
-- Backend: FastAPI, SQLAlchemy, Pydantic Settings
-- Data/AI: Pandas, ChromaDB, LangChain/OpenAI (optional), local fallback inference modules
-- Infra: Docker Compose, Redis, Celery, PostgreSQL
+- **Frontend**: React (Vite), Tailwind CSS, Recharts, Lucide React
+- **Backend**: FastAPI (Python), Pandas
+- **Data**: In-memory (with file upload parsing)
 
-## API Endpoints
-- `GET /`
-- `POST /upload-data`
-- `POST /analyze-data`
-- `GET /insights`
-- `GET /sentiment-trend`
-- `GET /churn-risk`
-- `POST /query-ai`
-- `POST /admin/api-key`
+## How to Run Locally
 
-## Run Locally
+### 1. Start the Backend
+The backend runs on `http://localhost:8000`.
 
-### Docker
 ```bash
-cp .env.example .env
-docker compose up --build
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
 ```
 
-Services:
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000`
-- Chroma: `http://localhost:8001`
+### 2. Start the Frontend
+The frontend runs on `http://localhost:5173`.
 
-### Without Docker
-Backend:
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-python backend/main.py
+cd frontend
+npm install
+npm run dev
 ```
 
-Frontend:
-- The frontend is served by the backend Flask app.
-- Start the backend and open `http://127.0.0.1:5000` in your browser.
+## Features
+1. **Dashboard**: Real-time KPIs, sentiment trend chart, complaint topics, and customer segment breakdown.
+2. **Reviews**: Live review stream and manual review submission form.
+3. **Analytics**: Drag-and-drop CSV/JSON upload to process bulk datasets.
+4. **Churn Risk**: Predictive table scoring customers based on activity and sentiment.
+5. **Journey Intelligence**: Visual timeline of a customer's touchpoints.
+6. **AI Copilot**: Natural language interface for querying insights from data.
+7. **Admin**: Configuration page for API keys and system status.
 
-If you want to run the frontend independently in the future, add a modern frontend build system under `frontend/`.
-
-## Tests
-```bash
-pytest backend/tests
-```
-
-## Notes
-- If `OPENAI_API_KEY` is configured, AI Copilot uses LangChain + OpenAI model calls.
-- If OpenAI is unavailable, the backend returns deterministic fallback answers based on retrieved context.
-- If Chroma is unavailable, vector search falls back to in-memory similarity.
-
-- ### Additional Analytics Modules
-- Customer review insights
-- Dataset summary analytics
+## Sample Data
+You can use the included `sample_data.csv` in the root folder to test the Analytics page's upload feature.
