@@ -38,3 +38,9 @@ npm run dev
 
 ## Sample Data
 You can use the included `sample_data.csv` in the root folder to test the Analytics page's upload feature.
+
+## Analytics Features Added
+- Sentiment ratio
+- Category analysis
+- Chat analytics
+- Event tracking
