@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CX Analytics Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Customer Analytics</p>
+          <h1>Visualize CX performance in real time</h1>
+          <p class="hero-copy">
+            An interactive dashboard for sentiment, churn risk, and customer recommendations.
+            Powered by your dataset and served from a lightweight Flask backend.
+          </p>
+        </div>
+        <button id="refreshButton" class="button">Refresh data</button>
+      </header>
+
+      <section class="metric-grid" id="metricGrid">
+        <div class="metric-card"><span class="metric-title">Loading metrics...</span></div>
+      </section>
+
+      <section class="panel layout-two-col">
+        <div class="card card-panel">
+          <h2>Sentiment Summary</h2>
+          <div class="stat-row">
+            <div>
+              <p class="stat-value" id="totalReviews">-</p>
+              <p class="stat-label">Reviews processed</p>
+            </div>
+            <div>
+              <p class="stat-value" id="positiveMentions">-</p>
+              <p class="stat-label">Positive mentions</p>
+            </div>
+            <div>
+              <p class="stat-value" id="negativeMentions">-</p>
+              <p class="stat-label">Negative mentions</p>
+            </div>
+          </div>
+          <div class="meter-row">
+            <div class="meter-label">Positive vs Negative</div>
+            <div class="meter">
+              <div class="meter-bar positive" id="positiveBar"></div>
+              <div class="meter-bar negative" id="negativeBar"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-panel">
+          <h2>Churn Risk</h2>
+          <p id="riskSummary" class="risk-summary">-</p>
+          <div class="risk-meter">
+            <div class="risk-scale">
+              <span>Low</span><span>Medium</span><span>High</span>
+            </div>
+            <div class="risk-bar" id="riskBar"></div>
+          </div>
+          <div class="metric-list">
+            <div>
+              <p class="tiny-label">Churn probability</p>
+              <p id="churnProb">-</p>
+            </div>
+            <div>
+              <p class="tiny-label">Event total</p>
+              <p id="eventTotal">-</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card card-panel recommendations">
+        <h2>Recommendations</h2>
+        <ul id="recommendationList" class="recommendation-list">
+          <li>Loading recommendations...</li>
+        </ul>
+      </section>
+
+      <footer class="footer">
+        <p>Ready to present: backend and static dashboard are running together at <strong>http://127.0.0.1:5000</strong>.</p>
+      </footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "cx-analytics-frontend",
+  "private": true,
+  "description": "Simple static frontend for the CX Analytics platform.",
+  "scripts": {
+    "start": ""  
+  }
+}

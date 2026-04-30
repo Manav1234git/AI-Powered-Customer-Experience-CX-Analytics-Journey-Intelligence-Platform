@@ -11,7 +11,11 @@ from sentiment_analysis import analyze_sentiment
 from churn_prediction import predict_churn
 from recommendation_engine import generate_recommendations
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder=str(PROJECT_ROOT / "frontend"),
+    static_url_path="",
+)
 
 DATA_DIR = PROJECT_ROOT / "data"
 reviews = pd.read_csv(DATA_DIR / "customer_reviews.csv")
@@ -20,7 +24,7 @@ events = pd.read_csv(DATA_DIR / "website_events.csv")
 
 @app.route("/")
 def home():
-    return {"message": "CX Analytics Backend Running"}
+    return app.send_static_file("index.html")
 
 @app.route("/sentiment")
 def sentiment():
