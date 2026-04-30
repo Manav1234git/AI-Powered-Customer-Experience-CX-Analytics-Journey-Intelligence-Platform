@@ -1,8 +1,6 @@
-backend/venv/
-backend/.venv/
+venv/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-frontend/node_modules/
-.DS_Store
+*.db
+*.pkl
+.env
+node_modules/
