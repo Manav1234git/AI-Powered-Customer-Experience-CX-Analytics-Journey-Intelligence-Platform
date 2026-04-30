@@ -1,22 +1,30 @@
 from flask import Flask, jsonify
 import pandas as pd
 import sys
+from pathlib import Path
 
-sys.path.append("../ai-engine")
+ROOT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = ROOT_DIR.parent
+sys.path.append(str(PROJECT_ROOT / "ai-engine"))
 
 from sentiment_analysis import analyze_sentiment
 from churn_prediction import predict_churn
 from recommendation_engine import generate_recommendations
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder=str(PROJECT_ROOT / "frontend"),
+    static_url_path="",
+)
 
-reviews = pd.read_csv("../data/customer_reviews.csv")
-chats = pd.read_csv("../data/support_chats.csv")
-events = pd.read_csv("../data/website_events.csv")
+DATA_DIR = PROJECT_ROOT / "data"
+reviews = pd.read_csv(DATA_DIR / "customer_reviews.csv")
+chats = pd.read_csv(DATA_DIR / "support_chats.csv")
+events = pd.read_csv(DATA_DIR / "website_events.csv")
 
 @app.route("/")
 def home():
-    return {"message": "CX Analytics Backend Running"}
+    return app.send_static_file("index.html")
 
 @app.route("/sentiment")
 def sentiment():

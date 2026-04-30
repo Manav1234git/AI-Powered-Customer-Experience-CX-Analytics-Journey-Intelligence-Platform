@@ -95,15 +95,14 @@ Backend:
 python -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
-uvicorn backend.main:app --reload --port 8000
+python backend/main.py
 ```
 
 Frontend:
-```bash
-cd frontend
-npm install
-npm run dev
-```
+- The frontend is served by the backend Flask app.
+- Start the backend and open `http://127.0.0.1:5000` in your browser.
+
+If you want to run the frontend independently in the future, add a modern frontend build system under `frontend/`.
 
 ## Tests
 ```bash
