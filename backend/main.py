@@ -10,17 +10,11 @@ import pandas as pd
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr
-from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from pymongo import MongoClient
 import google.generativeai as genai
-from passlib.context import CryptContext
+import bcrypt
 from jose import JWTError, jwt
-
-import models
-from database import engine, get_db, Base
-
-# Create tables
-models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CX Analytics API")
 
@@ -32,19 +26,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- MONGODB SETUP ---
+mongo_client = MongoClient("mongodb://localhost:27017/")
+db = mongo_client["cx_analytics"]
+
+# Collections
+users_col = db["users"]
+customers_col = db["customers"]
+reviews_col = db["reviews"]
+journeys_col = db["journeys"]
+
 # --- AUTH SETUP ---
 SECRET_KEY = "super-secret-key-for-pilot-presentation-only"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 1 day
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str):
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8') if isinstance(hashed_password, str) else hashed_password)
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+def get_password_hash(password: str):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -72,16 +75,14 @@ except Exception as e:
     scaler = None
 
 # --- POPULATE DB ON STARTUP (IF EMPTY) ---
-def init_db(db: Session):
+def init_db():
     # Check for Admin user
-    if not db.query(models.User).filter(models.User.email == "admin@cx.com").first():
+    if users_col.count_documents({"email": "admin@cx.com"}) == 0:
         hashed_pwd = get_password_hash("admin123")
-        admin_user = models.User(email="admin@cx.com", hashed_password=hashed_pwd, full_name="System Admin")
-        db.add(admin_user)
-        db.commit()
+        users_col.insert_one({"email": "admin@cx.com", "hashed_password": hashed_pwd, "full_name": "System Admin", "is_active": True})
 
     # Check for customers
-    if db.query(models.Customer).first():
+    if customers_col.count_documents({}) > 0:
         return
     
     customers_data = [
@@ -96,7 +97,7 @@ def init_db(db: Session):
         {"customer_id": "C009", "name": "Ian Malcolm", "ticket_count": 6, "inactive_days": 45},
         {"customer_id": "C010", "name": "Julia Child", "ticket_count": 1, "inactive_days": 8},
     ]
-    for c in customers_data: db.add(models.Customer(**c))
+    customers_col.insert_many(customers_data)
         
     reviews_data = [
         {"customer_id": "C001", "name": "Alice Smith", "text": "Great service, very happy with the product!", "rating": 5, "date": (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d"), "sentiment_label": "Positive", "sentiment_score": 0.8},
@@ -106,16 +107,14 @@ def init_db(db: Session):
         {"customer_id": "C005", "name": "Evan Wright", "text": "Awful platform, so broken.", "rating": 1, "date": (datetime.now() - timedelta(days=15)).strftime("%Y-%m-%d"), "sentiment_label": "Negative", "sentiment_score": -0.8},
         {"customer_id": "C006", "name": "Fiona Gallagher", "text": "Excellent tools, amazing team.", "rating": 5, "date": (datetime.now() - timedelta(days=18)).strftime("%Y-%m-%d"), "sentiment_label": "Positive", "sentiment_score": 0.9},
     ]
-    for r in reviews_data: db.add(models.Review(**r))
+    reviews_col.insert_many(reviews_data)
         
     journeys_data = [
         {"customer_id": "C001", "date": "2023-10-01", "channel": "email", "sentiment": "Neutral", "resolved": "Y", "note": ""},
         {"customer_id": "C001", "date": "2023-10-15", "channel": "chat", "sentiment": "Positive", "resolved": "Y", "note": ""},
         {"customer_id": "C002", "date": "2023-09-20", "channel": "phone", "sentiment": "Negative", "resolved": "N", "note": ""},
     ]
-    for j in journeys_data: db.add(models.JourneyTouchpoint(**j))
-        
-    db.commit()
+    journeys_col.insert_many(journeys_data)
 
 # --- HELPER FUNCTIONS ---
 def calculate_sentiment(text: str):
@@ -140,11 +139,11 @@ def calculate_sentiment(text: str):
 
 def calc_churn_for_db(customer, avg_sentiment):
     if churn_model and scaler:
-        features = pd.DataFrame([{'ticket_count': customer.ticket_count, 'inactive_days': customer.inactive_days, 'avg_sentiment': avg_sentiment}])
+        features = pd.DataFrame([{'ticket_count': customer.get('ticket_count', 0), 'inactive_days': customer.get('inactive_days', 0), 'avg_sentiment': avg_sentiment}])
         X_scaled = scaler.transform(features)
         prob = churn_model.predict_proba(X_scaled)[0][1]
     else:
-        x = 0.3 * customer.ticket_count + 0.4 * (customer.inactive_days / 30) - 0.5 * avg_sentiment
+        x = 0.3 * customer.get('ticket_count', 0) + 0.4 * (customer.get('inactive_days', 0) / 30) - 0.5 * avg_sentiment
         prob = 1 / (1 + math.exp(-x))
     
     if prob < 0.3: level = "Low"
@@ -155,7 +154,7 @@ def calc_churn_for_db(customer, avg_sentiment):
 # --- Pydantic Models ---
 class UserCreate(BaseModel):
     full_name: str
-    email: EmailStr
+    email: str
     password: str
 
 class ReviewInput(BaseModel):
@@ -171,42 +170,38 @@ class AIQuery(BaseModel):
 # --- ENDPOINTS ---
 @app.on_event("startup")
 def on_startup():
-    db = next(get_db())
-    init_db(db)
+    init_db()
 
 # AUTH ENDPOINTS
 @app.post("/api/register")
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
-    if db_user:
+def register_user(user: UserCreate):
+    if users_col.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_password = get_password_hash(user.password)
-    new_user = models.User(email=user.email, hashed_password=hashed_password, full_name=user.full_name)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    new_user = {"email": user.email, "hashed_password": hashed_password, "full_name": user.full_name, "is_active": True}
+    users_col.insert_one(new_user)
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(data={"sub": new_user.email}, expires_delta=access_token_expires)
+    access_token = create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
     
-    return {"access_token": access_token, "token_type": "bearer", "user": {"email": new_user.email, "name": new_user.full_name}}
+    return {"access_token": access_token, "token_type": "bearer", "user": {"email": user.email, "name": user.full_name}}
 
 @app.post("/api/login")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = users_col.find_one({"email": form_data.username})
+    if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
-    return {"access_token": access_token, "token_type": "bearer", "user": {"email": user.email, "name": user.full_name}}
+    access_token = create_access_token(data={"sub": user["email"]}, expires_delta=access_token_expires)
+    return {"access_token": access_token, "token_type": "bearer", "user": {"email": user["email"], "name": user.get("full_name", "")}}
 
 # PROTECTED DEPENDENCY
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -219,56 +214,55 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user = db.query(models.User).filter(models.User.email == email).first()
+    user = users_col.find_one({"email": email})
     if user is None:
         raise credentials_exception
     return user
 
 @app.get("/api/me")
-def read_users_me(current_user: models.User = Depends(get_current_user)):
-    return {"email": current_user.email, "name": current_user.full_name}
+def read_users_me(current_user: dict = Depends(get_current_user)):
+    return {"email": current_user["email"], "name": current_user.get("full_name", "")}
 
-# DATA ENDPOINTS (Protected theoretically, but left public for demo simplicity or we can protect them)
-# For the demo presentation, let's keep the API public so the React app works without huge state changes everywhere,
-# but we will add actual authentication flow for the frontend landing page.
 
 @app.post("/submit-review")
-def submit_review(review: ReviewInput, db: Session = Depends(get_db)):
+def submit_review(review: ReviewInput):
     score, label = calculate_sentiment(review.text)
-    new_rev = models.Review(
-        customer_id=review.customer_id, name=review.name, text=review.text, rating=review.rating,
-        date=review.date, sentiment_label=label, sentiment_score=score
-    )
-    db.add(new_rev)
-    cust = db.query(models.Customer).filter(models.Customer.customer_id == review.customer_id).first()
-    if not cust:
-        cust = models.Customer(customer_id=review.customer_id, name=review.name, ticket_count=0, inactive_days=0)
-        db.add(cust)
-    db.commit()
+    new_rev = {
+        "customer_id": review.customer_id, "name": review.name, "text": review.text, "rating": review.rating,
+        "date": review.date, "sentiment_label": label, "sentiment_score": score
+    }
+    result = reviews_col.insert_one(new_rev)
+    new_rev["_id"] = str(result.inserted_id)
+    
+    if not customers_col.find_one({"customer_id": review.customer_id}):
+        customers_col.insert_one({"customer_id": review.customer_id, "name": review.name, "ticket_count": 0, "inactive_days": 0})
     return {"status": "success", "review": new_rev}
 
 @app.get("/reviews")
-def get_reviews(db: Session = Depends(get_db)):
-    return db.query(models.Review).order_by(models.Review.id.desc()).all()
+def get_reviews():
+    reviews = list(reviews_col.find().sort("_id", -1))
+    for r in reviews:
+        r["id"] = str(r.pop("_id"))
+    return reviews
 
 @app.get("/insights")
-def get_insights(db: Session = Depends(get_db)):
-    customers = db.query(models.Customer).all()
-    reviews = db.query(models.Review).all()
+def get_insights():
+    customers = list(customers_col.find())
+    reviews = list(reviews_col.find())
     total_customers = len(customers)
-    avg_sentiment = sum(r.sentiment_score for r in reviews) / len(reviews) if reviews else 0.0
+    avg_sentiment = sum(r.get("sentiment_score", 0) for r in reviews) / len(reviews) if reviews else 0.0
     
     all_churns = []
     for c in customers:
-        c_revs = [r for r in reviews if r.customer_id == c.customer_id]
-        c_avg = sum(r.sentiment_score for r in c_revs) / len(c_revs) if c_revs else 0.0
+        c_revs = [r for r in reviews if r.get("customer_id") == c.get("customer_id")]
+        c_avg = sum(r.get("sentiment_score", 0) for r in c_revs) / len(c_revs) if c_revs else 0.0
         all_churns.append(calc_churn_for_db(c, c_avg)["prob"])
     avg_churn_risk = sum(all_churns) / len(all_churns) if all_churns else 0.0
     
     nps = 0.0
     if reviews:
-        promoters = sum(1 for r in reviews if r.rating >= 4)
-        detractors = sum(1 for r in reviews if r.rating <= 2)
+        promoters = sum(1 for r in reviews if r.get("rating", 0) >= 4)
+        detractors = sum(1 for r in reviews if r.get("rating", 0) <= 2)
         nps = ((promoters - detractors) / len(reviews)) * 100
 
     return {
@@ -279,37 +273,43 @@ def get_insights(db: Session = Depends(get_db)):
     }
 
 @app.get("/sentiment-trend")
-def get_sentiment_trend(db: Session = Depends(get_db)):
-    reviews = db.query(models.Review).all()
+def get_sentiment_trend():
+    reviews = list(reviews_col.find())
     if not reviews: return []
-    df = pd.DataFrame([{ "date": r.date, "sentiment_score": r.sentiment_score } for r in reviews])
+    df = pd.DataFrame([{ "date": r.get("date"), "sentiment_score": r.get("sentiment_score", 0) } for r in reviews])
     trend = df.groupby('date')['sentiment_score'].mean().reset_index()
     return trend.sort_values('date').to_dict(orient='records')
 
 @app.get("/churn-risk")
-def get_churn_risk(db: Session = Depends(get_db)):
-    customers = db.query(models.Customer).all()
-    reviews = db.query(models.Review).all()
+def get_churn_risk():
+    customers = list(customers_col.find())
+    reviews = list(reviews_col.find())
     results = []
     for c in customers:
-        c_revs = [r for r in reviews if r.customer_id == c.customer_id]
-        c_avg = sum(r.sentiment_score for r in c_revs) / len(c_revs) if c_revs else 0.0
+        c_revs = [r for r in reviews if r.get("customer_id") == c.get("customer_id")]
+        c_avg = sum(r.get("sentiment_score", 0) for r in c_revs) / len(c_revs) if c_revs else 0.0
         risk_info = calc_churn_for_db(c, c_avg)
         results.append({
-            "customer_id": c.customer_id, "name": c.name, "sentiment_score": round(risk_info["avg_sentiment"], 2),
-            "ticket_count": c.ticket_count, "inactive_days": c.inactive_days,
+            "customer_id": c.get("customer_id"), "name": c.get("name"), "sentiment_score": round(risk_info["avg_sentiment"], 2),
+            "ticket_count": c.get("ticket_count", 0), "inactive_days": c.get("inactive_days", 0),
             "churn_risk_pct": round(risk_info["prob"] * 100, 1), "risk_level": risk_info["level"]
         })
     return results
 
 @app.post("/query-ai")
-def query_ai(query: AIQuery, db: Session = Depends(get_db)):
-    customers = db.query(models.Customer).all()
-    reviews = db.query(models.Review).all()
-    avg_sentiment = sum(r.sentiment_score for r in reviews) / len(reviews) if reviews else 0.0
+def query_ai(query: AIQuery):
+    customers = list(customers_col.find())
+    reviews = list(reviews_col.find())
+    avg_sentiment = sum(r.get("sentiment_score", 0) for r in reviews) / len(reviews) if reviews else 0.0
     
-    high_risk = [c.name for c in customers if calc_churn_for_db(c, sum(r.sentiment_score for r in reviews if r.customer_id == c.customer_id) / max(1, len([r for r in reviews if r.customer_id == c.customer_id])))["level"] == "High"]
-    recent_feedback = " ".join([r.text for r in reviews[:5]])
+    high_risk = []
+    for c in customers:
+        c_revs = [r for r in reviews if r.get("customer_id") == c.get("customer_id")]
+        c_avg = sum(r.get("sentiment_score", 0) for r in c_revs) / len(c_revs) if c_revs else 0.0
+        if calc_churn_for_db(c, c_avg)["level"] == "High":
+            high_risk.append(c.get("name"))
+            
+    recent_feedback = " ".join([r.get("text", "") for r in reviews[:5]])
             
     context_prompt = f"""
     You are an advanced CX (Customer Experience) Intelligence AI Copilot.
@@ -328,6 +328,20 @@ def query_ai(query: AIQuery, db: Session = Depends(get_db)):
         return {"answer": "Error connecting to AI."}
 
 @app.get("/journey/{customer_id}")
-def get_journey(customer_id: str, db: Session = Depends(get_db)):
-    journeys = db.query(models.JourneyTouchpoint).filter(models.JourneyTouchpoint.customer_id == customer_id).all()
+def get_journey(customer_id: str):
+    journeys = list(journeys_col.find({"customer_id": customer_id}))
+    for j in journeys: j["id"] = str(j.pop("_id"))
     return journeys if journeys else [{"date": "2023-01-01", "channel": "system", "sentiment": "Neutral", "resolved": "Y", "note": "Account created"}]
+
+@app.post("/upload-data")
+async def upload_data(file: UploadFile = File(...)):
+    if not file.filename.endswith(('.csv', '.json')):
+        raise HTTPException(status_code=400, detail="Only CSV or JSON files are supported.")
+    content = await file.read()
+    try:
+        if file.filename.endswith('.csv'): df = pd.read_csv(io.StringIO(content.decode('utf-8')))
+        else: df = pd.read_json(io.StringIO(content.decode('utf-8')))
+        stats = {"total_rows": len(df), "columns": list(df.columns)}
+        return {"status": "success", "filename": file.filename, "stats": stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
